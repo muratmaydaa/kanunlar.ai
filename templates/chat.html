@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chatbot</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box"></div>
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Mesajınızı yazın...">
+            <button onclick="sendMessage()">
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-mic-fill" viewBox="0 0 16 16">
+                 <path d="m11.5 3h-10a.5.5 0 0 0-.5.5v10a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-10a.5.5 0 0 0-.5-.5zm-4 7a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 1 0v3z"/>
+                 <path d="M8 7a.5.5 0 0 1-.5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 1 0zm-2-3.124A.5.5 0 0 1 6.5 3h3a.5.5 0 0 1 .5.5c0 .308-.212.582-.476.668-1.135.418-1.861 1.291-1.861 2.134v.2a.5.5 0 0 1-1 0v-.2a.916.916 0 0 0 .836-.832l.001-.004c.006-.337.279-.568.516-.626A.5.5 0 0 1 8 3.876z"/>
+                 <path fill-rule="evenodd" d="M1 8a7 7 0 1 1 14 0A7 7 0 0 1 1 8zM0 8a8 8 0 1 0 16 0A8 8 0 0 0 0 8z"/>
+              </svg>
+           </button>
+        </div>
+    </div>
+    <script>
+        function sendMessage() {
+            var userInput = document.getElementById('user-input').value;
+            if (userInput.trim() !== '') {
+                addMessageToChat('user', userInput);
+                document.getElementById('user-input').value = '';
+
+                var chatbotMessage = document.createElement('div');
+                chatbotMessage.classList.add('chatbot-message');
+                document.getElementById('chat-box').appendChild(chatbotMessage);
+
+                fetch('/get_response', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: userInput })
+                })
+                .then(response => response.json())
+                 .then(data => {
+                   const eventSource = new EventSource(`/get_response_stream?message=${encodeURIComponent(data.message)}`);
+                        eventSource.onmessage = function (event) {
+                            if (event.data === "[DONE]") {
+                                eventSource.close();
+                                return;
+                            }
+                        
+                            var regex = new RegExp(".{0,}?(?:\\.|!|\\?)(?:(?=\\[A-Z0-9])|$)", "g");
+                            //var testString = "This is a long string with some numbers [125.000,55 and 140.000]";
+                            var match;
+                            var sentences = event.data;
+                            while ((match = regex.exec(event.data)) != null) {
+                            // javascript RegExp has a bug when the match has length 0
+                            if (match.index === regex.lastIndex) {
+                                regex.lastIndex++;
+                            }
+                            sentences = match[0]+ '<br>';
+                            // console.log(match[0]);
+}
+
+                            //const sentences = event.data.split('.');
+                            //let formattedText = '';
+                            //sentences.forEach(sentence => {
+                            //    if (sentence.trim() !== '') {
+                            //        formattedText += sentence.trim() + '<br>';
+                            //    }
+                            //});
+                            //var testString = "Yangın güvenlik holü, yangının ve dumanın kaçış merdivenlerine geçişini engellemek için yapılacak bölümü ifade eder. Yangın kapısı, duman, ısı ve alev.";
+                            // var sentences = event.data.split(/\. ?/); // Noktadan sonra boşluk olsa da olmasa da parçalar
+
+                            // sentences.forEach(sentence => {
+                            //     console.log(sentence.trim()); // Fazladan boşlukları temizleyerek yazdır
+                            // });
+                             chatbotMessage.innerHTML += sentences;
+                            var chatBox = document.getElementById('chat-box');
+                            chatBox.scrollTop = chatBox.scrollHeight;
+                            
+                            
+
+                        };
+
+
+                        eventSource.onerror = function (error) {
+                             console.error("EventSource error:", error);
+                             chatbotMessage.textContent = "Bir hata oluştu.";
+                             eventSource.close();
+                        };
+                   })
+                  .catch(error => {
+                        chatbotMessage.textContent = "Bir hata oluştu.";
+                  });
+            }
+        }
+
+        function addMessageToChat(sender, message) {
+            var chatBox = document.getElementById('chat-box');
+            var messageDiv = document.createElement('div');
+            messageDiv.classList.add(sender + '-message');
+            messageDiv.textContent = message;
+             chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        document.getElementById('user-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                 sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

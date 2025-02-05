@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Paneli</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="admin-container">
+        <h1>Admin Paneli</h1>
+        {% if message %}
+            <p class="message">{{ message }}</p>
+        {% endif %}
+         <form method="post" enctype="multipart/form-data">
+            <h2>Doküman Ekle</h2>
+            <input type="file" name="add_doc" id="add_doc" accept=".txt,.pdf,.html">
+            <button type="submit" name="add_doc_btn">Ekle</button>
+        </form>
+
+        <form method="post">
+            <h2>Veritabanı Güncelle</h2>
+            <button type="submit" name="update_db">Güncelle</button>
+        </form>
+
+    </div>
+</body>
+</html>
